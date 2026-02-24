@@ -78,7 +78,7 @@ class TaskEngine:
             # 更新任务状态
             state_manager.set_task_status(task_id, state_manager.TaskStatus.RUNNING)
             task.status = 'running'
-            task.started_at = datetime.utcnow()
+            task.started_at = datetime.now(datetime.timezone.utc)
             db.session.commit()
 
             # 发送状态更新
