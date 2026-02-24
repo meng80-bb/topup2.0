@@ -424,20 +424,6 @@ def step6_2_merge_images(
 
 ## 参考实现
 
-项目中的步骤实现参考：
-
-1. [step1_1_first_job_submission.py](./step1_1_first_job_submission.py)
-   - 第一个作业提交的完整实现
-   - 包含目录检查、作业提交、等待完成等功能
-
-2. [step6_2_merge_images.py](./step6_2_merge_images.py)
-   - 图像合并的示例实现
-   - 展示了文件操作和错误处理
-
-3. [step7_run_reset_script.py](./step7_run_reset_script.py)
-   - 脚本执行的简单示例
-   - 展示了基本的命令执行模式
-
 ### 最佳实践
 
 1. **参数验证**：验证所有必需参数

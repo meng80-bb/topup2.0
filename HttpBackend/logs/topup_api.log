@@ -1,0 +1,24 @@
+2026-02-24 17:39:38,030 [INFO] app: Database tables created successfully
+2026-02-24 17:39:38,031 [INFO] __main__: Starting Topup HTTP API on 0.0.0.0:5000
+2026-02-24 17:39:38,032 [INFO] __main__: Debug mode: True
+2026-02-24 17:39:38,064 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.0.101:5000
+2026-02-24 17:39:38,065 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-02-24 17:47:27,356 [INFO] app: Database tables created successfully
+2026-02-24 17:47:27,359 [INFO] __main__: Starting Topup HTTP API on 0.0.0.0:5000
+2026-02-24 17:47:27,360 [INFO] __main__: Debug mode: True
+2026-02-24 17:47:27,383 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.0.101:5000
+2026-02-24 17:47:27,388 [INFO] werkzeug: [33mPress CTRL+C to quit[0m
+2026-02-24 17:52:39,079 [INFO] app: Database tables created successfully
+2026-02-24 17:52:39,079 [INFO] __main__: Starting Topup HTTP API on 0.0.0.0:5000
+2026-02-24 17:52:39,080 [INFO] __main__: Debug mode: True
+2026-02-24 17:52:39,106 [INFO] werkzeug: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.0.101:5000
+2026-02-24 17:52:39,106 [INFO] werkzeug: [33mPress CTRL+C to quit[0m

@@ -19,6 +19,7 @@ from api.middleware import setup_middleware
 # 创建应用实例
 app = Flask(__name__)
 app.config.update(FLASK_CONFIG)
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 
 # 配置CORS
 CORS(app, resources={
