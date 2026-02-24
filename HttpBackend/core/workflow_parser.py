@@ -8,6 +8,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+from services.database_workflow_service import database_workflow_service
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +40,18 @@ class WorkflowParser:
         if workflow_name in self._cache:
             return self._cache[workflow_name]
 
-        # 尝试加载配置文件
-        config_path = self.config_dir / f'{workflow_name}.json'
+        # 首先尝试从数据库加载
+        try:
+            config = database_workflow_service.load_workflow_from_db(workflow_name)
+            self._cache[workflow_name] = config
+            logger.info(f"Loaded workflow '{workflow_name}' from database")
+            return config
+        except Exception as e:
+            logger.warning(f"Failed to load workflow from database: {e}")
 
+        # 回退到文件加载
+        config_path = self.config_dir / f'{workflow_name}.json'
         if not config_path.exists():
-            # 尝试默认配置
             config_path = self.config_dir / 'topup_standard.json'
 
         if not config_path.exists():

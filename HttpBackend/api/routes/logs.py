@@ -5,7 +5,10 @@
 """
 
 from flask import request, jsonify
-from api.routes import logs_bp
+from flask import Blueprint
+
+# 创建蓝图
+logs_bp = Blueprint('logs', __name__)
 
 
 @logs_bp.route('/<int:task_id>', methods=['GET'])

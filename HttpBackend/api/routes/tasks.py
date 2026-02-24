@@ -5,7 +5,10 @@
 """
 
 from flask import request, jsonify
-from api.routes import tasks_bp
+from flask import Blueprint
+
+# 创建蓝图
+tasks_bp = Blueprint('tasks', __name__)
 from models.database import db
 from models.task import Task, Workflow
 from services.task_service import TaskService

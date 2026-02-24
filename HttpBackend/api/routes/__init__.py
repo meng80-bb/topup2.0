@@ -4,10 +4,8 @@
 API 路由包
 """
 
-from flask import Blueprint
-
-# 创建蓝图
-tasks_bp = Blueprint('tasks', __name__)
-workflows_bp = Blueprint('workflows', __name__)
-executions_bp = Blueprint('executions', __name__)
-logs_bp = Blueprint('logs', __name__)
+# 从各个路由模块导入蓝图
+from .tasks import tasks_bp
+from .workflows import workflows_bp
+from .executions import executions_bp
+from .logs import logs_bp

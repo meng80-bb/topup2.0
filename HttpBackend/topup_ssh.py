@@ -10,7 +10,10 @@ import os
 import time
 from typing import Optional, Tuple, Dict, Any
 import config
-from logger import step_logger
+import logging
+
+# 创建logger
+logger = logging.getLogger(__name__)
 
 
 class TopupSSH:
@@ -122,8 +125,8 @@ class TopupSSH:
             print(f"\n执行命令: {command}")
 
             # 记录命令到日志
-            if step_logger.enabled:
-                step_logger.log_command(command)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"执行命令: {command}")
 
             stdin, stdout, stderr = self.ssh2.exec_command(command, get_pty=use_pty)
 
@@ -136,8 +139,8 @@ class TopupSSH:
                     stdout.channel.close()
 
                     # 记录超时到日志
-                    if step_logger.enabled:
-                        step_logger.log_command_output(f"命令执行超时（{timeout}秒）")
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"命令执行超时（{timeout}秒）")
 
                     return {
                         'success': False,
@@ -178,13 +181,13 @@ class TopupSSH:
             error = stderr.read().decode('utf-8', errors='ignore')
 
             # 记录输出到日志
-            if step_logger.enabled:
+            if logger.isEnabledFor(logging.DEBUG):
                 output_log = f"退出码: {exit_code}\n"
                 if output.strip():
                     output_log += f"输出:\n{output.strip()}\n"
                 if error.strip():
                     output_log += f"错误:\n{error.strip()}\n"
-                step_logger.log_command_output(output_log)
+                logger.debug(output_log)
 
             result = {
                 'success': exit_code == 0,
@@ -209,8 +212,8 @@ class TopupSSH:
             print(f"✗ 命令执行异常: {str(e)}")
             
             # 记录异常到日志
-            if step_logger.enabled:
-                step_logger.log_command_output(f"命令执行异常: {str(e)}")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"命令执行异常: {str(e)}")
             
             return {
                 'success': False,
@@ -253,9 +256,9 @@ class TopupSSH:
             print(f"完成标记: {completion_marker}")
             
             # 记录命令到日志
-            if step_logger.enabled:
-                step_logger.log_command(f"{command} (交互式)")
-                step_logger.log_command_output(f"完成标记: {completion_marker}")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"{command} (交互式)")
+                logger.debug(f"完成标记: {completion_marker}")
             
             shell.send(f"{command}\n")
             
@@ -278,8 +281,8 @@ class TopupSSH:
             shell.close()
             
             # 记录输出到日志
-            if step_logger.enabled:
-                step_logger.log_command_output(f"输出:\n{full_output}")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"输出:\n{full_output}")
             
             result = {
                 'success': True,
@@ -294,8 +297,8 @@ class TopupSSH:
             print(f"✗ 命令执行异常: {str(e)}")
             
             # 记录异常到日志
-            if step_logger.enabled:
-                step_logger.log_command_output(f"命令执行异常: {str(e)}")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"命令执行异常: {str(e)}")
             
             return {
                 'success': False,

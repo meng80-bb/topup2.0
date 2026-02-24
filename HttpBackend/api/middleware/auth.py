@@ -8,6 +8,7 @@ from flask import request, jsonify, g
 import jwt
 from functools import wraps
 import logging
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def setup_auth(app):
         # 为所有请求添加user_id（临时方案，实际应该从token获取）
         if 'user_id' not in g:
             g.user_id = request.args.get('user_id', 'default_user')
+            logger.debug(f"Set user_id to: {g.user_id}")
 
     def generate_token(user_id):
         """生成JWT token"""

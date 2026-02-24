@@ -17,7 +17,7 @@ from core.workflow_parser import workflow_parser
 from core.step_executor import StepExecutor
 from core.state_manager import state_manager
 from topup_ssh import TopupSSH
-from app import emit_progress_update, emit_status_update
+from services.notification_service import emit_progress_update, emit_status_update
 
 logger = logging.getLogger(__name__)
 

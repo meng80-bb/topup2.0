@@ -5,7 +5,10 @@
 """
 
 from flask import request, jsonify
-from api.routes import workflows_bp
+from flask import Blueprint
+
+# 创建蓝图
+workflows_bp = Blueprint('workflows', __name__)
 from models.database import db
 from models.task import Workflow
 from core.workflow_parser import workflow_parser

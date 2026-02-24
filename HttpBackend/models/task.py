@@ -180,7 +180,7 @@ class StepOutput(db.Model):
     file_size_bytes = Column(Integer)
     file_hash = Column(String(64))
     content_type = Column(String(50))
-    metadata = Column(JSON)
+    step_metadata = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # 关联关系
@@ -195,7 +195,7 @@ class StepOutput(db.Model):
             'file_size_bytes': self.file_size_bytes,
             'file_hash': self.file_hash,
             'content_type': self.content_type,
-            'metadata': self.metadata,
+            'metadata': self.step_metadata,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
