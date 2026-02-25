@@ -66,11 +66,13 @@ class TopupSSH:
             print(f"✓ 成功连接到跳板机 {self.server1_config['host']}")
             
             # 创建传输通道到目标服务器
-            print(f"正在通过跳板机连接到目标服务器 {self.server2_config['host']}...")
             self.transport = self.ssh1.get_transport()
             dest_addr = (self.server2_config['host'], self.server2_config['port'])
             local_addr = ('localhost', 22)
-            channel = self.transport.open_channel("direct-tcpip", dest_addr, local_addr)
+            print("正在创建SSH通道...")
+            # 默认超时60秒，避免长时间卡在这里
+            channel = self.transport.open_channel("direct-tcpip", dest_addr, local_addr , timeout=60)
+            print(f"正在通过跳板机连接到目标服务器 {self.server2_config['host']}...")
             
             # 创建第二个SSH客户端（连接到目标服务器）
             self.ssh2 = paramiko.SSHClient()

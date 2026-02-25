@@ -67,7 +67,7 @@ class TaskEngine:
             # 创建SSH连接
             ssh_client = TopupSSH()
             if not ssh_client.connect():
-                return {'success': False, 'error': 'Failed to connect to SSH server'}
+                return {'success': False, 'error': 'Failed to connect to SSH server, please retry later or contact support'}
 
             self.ssh_clients[task_id] = ssh_client
 
