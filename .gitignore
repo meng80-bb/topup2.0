@@ -1,0 +1,9 @@
+.vscode
+.env
+.claude
+
+HttpBackend/topup_api.db
+HttpBackend/logs
+
+
+__pycache__

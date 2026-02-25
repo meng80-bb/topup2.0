@@ -1,0 +1,55 @@
+
+------------------------------------------------------------
+
+步骤日志记录器已启用
+执行模式: single
+开始时间: 2026-02-23 15:31:41
+
+------------------------------------------------------------
+
+[2026-02-23 15:31:41.035] 步骤开始
+  步骤编号: 7
+  步骤名称: 步骤7：运行reset.sh脚本
+[2026-02-23 15:31:41.037] 步骤开始
+  步骤编号: 7
+  步骤名称: 步骤7：运行reset.sh脚本
+
+[2026-02-23 15:31:41.038] 💻 执行命令:
+  $ cd /besfs5/groups/cal/topup/round18/DataValid/InjSigTimeCal && ./reset.sh
+
+[2026-02-23 15:32:25.893] 📤 命令输出:
+退出码: 0
+输出:
+done
+错误:
+rm: cannot remove '*.png': No such file or directory
+mv: cannot stat 'run*': No such file or directory
+mv: cannot stat '*.png': No such file or directory
+mv: cannot stat 'run*': No such file or directory
+mv: cannot stat 'shield_run*': No such file or directory
+mv: cannot stat 'run*': No such file or directory
+mv: cannot stat '*pdf': No such file or directory
+mv: cannot stat 'plot_ETS_*': No such file or directory
+mv: cannot stat 'run*': No such file or directory
+mv: cannot stat 'shield*': No such file or directory
+
+
+[2026-02-23 15:32:25.894] 步骤完成
+  步骤编号: 7
+  步骤名称: 步骤7：运行reset.sh脚本
+  执行结果: 成功
+  消息: reset.sh脚本执行成功
+
+############################################################
+[2026-02-23 15:32:25.897] ✓ 没出现任何错误，single正常退出
+############################################################
+
+
+------------------------------------------------------------
+
+步骤日志记录器已禁用
+执行模式: single
+结束时间: 2026-02-23 15:32:25
+
+------------------------------------------------------------
+
