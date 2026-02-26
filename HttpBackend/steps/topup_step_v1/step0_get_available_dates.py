@@ -213,7 +213,7 @@ def step0_get_available_dates(
 
             return {
                 'success': True,
-                'message': f'成功获取日期信息：共{len(all_dates)}个，已处理{len(processed_dates)}个，未处理{len(unprocessed_dates)}个',
+                'message': f'成功获取日期信息：共{len(all_dates)}个，已处理{len(processed_dates)}个，未处理{len(unprocessed_dates)}个， 未处理日期为: {unprocessed_dates}',
                 'step_name': 'step0',
                 'all_dates': all_dates,
                 'processed_dates': processed_dates,
@@ -231,7 +231,7 @@ def step0_get_available_dates(
 
             return {
                 'success': True,
-                'message': f'成功获取 {len(all_dates)} 个可用日期',
+                'message': f'成功获取 {len(all_dates)} 个可用日期，如下: {all_dates}',
                 'step_name': 'step0',
                 'all_dates': all_dates,
                 'total_count': len(all_dates),
