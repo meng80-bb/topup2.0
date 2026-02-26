@@ -8,14 +8,14 @@ import time
 import threading
 import logging
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
 
 from models.database import db
 from models.task import Task, TaskExecution, StepOutput, TaskLog
 from core.workflow_parser import workflow_parser
 from core.step_executor import StepExecutor
-from core.state_manager import state_manager, TaskStatus
+from core.state_manager import state_manager, TaskStatus, StepStatus
 from topup_ssh import TopupSSH
 from services.notification_service import emit_progress_update, emit_status_update
 
@@ -78,7 +78,7 @@ class TaskEngine:
             # 更新任务状态
             state_manager.set_task_status(task_id, TaskStatus.RUNNING)
             task.status = 'running'
-            task.started_at = datetime.now(datetime.timezone.utc)
+            task.started_at = datetime.now(timezone.utc)
             db.session.commit()
 
             # 发送状态更新
@@ -234,93 +234,103 @@ class TaskEngine:
         Args:
             task_id: 任务ID
         """
-        task = Task.query.get(task_id)
-        if not task:
-            logger.error(f"Task {task_id} not found")
-            return
+        logger.info(f"[Thread-{threading.current_thread().name}] Starting task execution for task {task_id}")
 
-        try:
-            # 更新开始时间
-            task.started_at = datetime.utcnow()
-            db.session.commit()
+        # 导入Flask应用以使用应用上下文
+        from app import app
 
-            # 获取工作流配置
-            config = workflow_parser.load_workflow(task.workflow.name)
-            steps = workflow_parser.get_steps_in_order(task.workflow.name)
+        # 在应用上下文中执行任务，确保数据库访问正常
+        with app.app_context():
+            task = Task.query.get(task_id)
+            if not task:
+                logger.error(f"Task {task_id} not found")
+                return
 
-            total_steps = len(steps)
-            completed_steps = 0
-
-            for i, step_config in enumerate(steps, 1):
-                if state_manager.get_task_status(task_id) != TaskStatus.RUNNING:
-                    logger.info(f"Task {task_id} cancelled, stopping execution")
-                    break
-
-                step_name = step_config['id']
-                step_order = step_config['order']
-
-                # 创建执行记录
-                execution = TaskExecution(
-                    task_id=task_id,
-                    step_name=step_name,
-                    step_display_name=step_config.get('display_name', step_name),
-                    step_order=step_order,
-                    status='running',
-                    start_time=datetime.utcnow()
-                )
-                db.session.add(execution)
+            try:
+                # 更新开始时间
+                task.started_at = datetime.utcnow()
                 db.session.commit()
 
-                # 执行步骤
-                step_executor = StepExecutor(self.ssh_clients[task_id])
-                result = step_executor.execute_step(
-                    task_id=task_id,
-                    step_config=step_config,
-                    parameters=self._get_task_parameters(task),
-                    step_order=step_order,
-                    step_name=step_name
-                )
+                # 获取工作流配置
+                logger.info(f"[Thread-{threading.current_thread().name}] Loading workflow configuration for task {task_id}")
+                config = workflow_parser.load_workflow(task.workflow.name)
+                steps = workflow_parser.get_steps_in_order(task.workflow.name)
 
-                # 更新执行记录
-                execution.status = 'success' if result['success'] else 'failed'
-                execution.end_time = datetime.utcnow()
-                execution.duration_seconds = result.get('duration_seconds', 0)
-                execution.output_summary = result.get('output_summary', '')
-                execution.error_details = result.get('error_details', '')
-                db.session.commit()
+                total_steps = len(steps)
+                completed_steps = 0
 
-                # 记录日志
-                self._log_step_execution(task_id, execution, result)
-
-                # 更新进度
-                completed_steps = i
-                progress = int((completed_steps / total_steps) * 100)
-                task.progress_percentage = progress
-                task.current_step = step_name
-                db.session.commit()
-
-                # 发送进度更新
-                emit_progress_update(task_id, progress)
-
-                # 更新状态管理器
-                status = state_manager.StepStatus.SUCCESS if result['success'] else state_manager.StepStatus.FAILED
-                state_manager.set_step_status(task_id, step_name, status)
-
-                # 如果步骤失败，检查是否需要停止
-                if not result['success']:
-                    if step_config.get('on_failure', {}).get('action') == 'stop':
-                        logger.error(f"Step {step_name} failed, stopping execution")
+                for i, step_config in enumerate(steps, 1):
+                    current_status = state_manager.get_task_status(task_id)
+                    logger.info(f"[Thread-{threading.current_thread().name}] Checking task status for task {task_id}: {current_status}")
+                    if current_status != TaskStatus.RUNNING:
+                        logger.info(f"Task {task_id} cancelled (status: {current_status}), stopping execution")
                         break
 
-            # 完成任务
-            self._complete_task(task_id)
+                    step_name = step_config['id']
+                    step_order = step_config['order']
 
-        except Exception as e:
-            logger.error(f"Error executing task {task_id}: {str(e)}")
-            self._fail_task(task_id, str(e))
-        finally:
-            # 清理资源
-            self._cleanup_task_resources(task_id)
+                    # 创建执行记录
+                    execution = TaskExecution(
+                        task_id=task_id,
+                        step_name=step_name,
+                        step_display_name=step_config.get('display_name', step_name),
+                        step_order=step_order,
+                        status='running',
+                        start_time=datetime.utcnow()
+                    )
+                    db.session.add(execution)
+                    db.session.commit()
+
+                    # 执行步骤
+                    step_executor = StepExecutor(self.ssh_clients[task_id])
+                    result = step_executor.execute_step(
+                        task_id=task_id,
+                        step_config=step_config,
+                        parameters=self._get_task_parameters(task),
+                        step_order=step_order,
+                        step_name=step_name
+                    )
+
+                    # 更新执行记录
+                    execution.status = 'success' if result['success'] else 'failed'
+                    execution.end_time = datetime.utcnow()
+                    execution.duration_seconds = result.get('duration_seconds', 0)
+                    execution.output_summary = result.get('output_summary', '')
+                    execution.error_details = result.get('error_details', '')
+                    db.session.commit()
+
+                    # 记录日志
+                    self._log_step_execution(task_id, execution, result)
+
+                    # 更新进度
+                    completed_steps = i
+                    progress = int((completed_steps / total_steps) * 100)
+                    task.progress_percentage = progress
+                    task.current_step = step_name
+                    db.session.commit()
+
+                    # 发送进度更新
+                    emit_progress_update(task_id, progress)
+
+                    # 更新状态管理器
+                    status = StepStatus.SUCCESS if result['success'] else StepStatus.FAILED
+                    state_manager.set_step_status(task_id, step_name, status)
+
+                    # 如果步骤失败，检查是否需要停止
+                    if not result['success']:
+                        if step_config.get('on_failure', {}).get('action') == 'stop':
+                            logger.error(f"Step {step_name} failed, stopping execution")
+                            break
+
+                # 完成任务
+                self._complete_task(task_id)
+
+            except Exception as e:
+                logger.error(f"Error executing task {task_id}: {str(e)}")
+                self._fail_task(task_id, str(e))
+            finally:
+                # 清理资源
+                self._cleanup_task_resources(task_id)
 
     def _get_task_parameters(self, task: Task) -> Dict[str, Any]:
         """

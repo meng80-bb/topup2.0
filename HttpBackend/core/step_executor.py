@@ -79,7 +79,7 @@ class StepExecutor:
             module_name = step_config['module']
             function_name = step_config['function']
 
-            module = importlib.import_module(f'..steps.{module_name}', package=__package__)
+            module = importlib.import_module(f'steps.{module_name}')
             step_function = getattr(module, function_name)
 
             # 执行步骤

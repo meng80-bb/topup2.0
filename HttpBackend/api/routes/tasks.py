@@ -16,7 +16,8 @@ from core.task_engine import TaskEngine
 
 # 初始化服务
 task_service = TaskService()
-task_engine = TaskEngine()
+# 使用全局任务引擎实例，而不是创建新实例
+from core.task_engine import task_engine
 
 
 @tasks_bp.route('', methods=['POST'])
