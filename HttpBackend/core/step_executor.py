@@ -5,6 +5,7 @@
 """
 
 import importlib
+import inspect
 import time
 import traceback
 import hashlib
@@ -82,12 +83,24 @@ class StepExecutor:
             module = importlib.import_module(f'steps.{module_name}')
             step_function = getattr(module, function_name)
 
-            # 执行步骤
-            logger.info(f"Executing {module_name}.{function_name}")
-            execution_result = step_function(
-                ssh=self.ssh_client,
-                **step_params
-            )
+            # 获取函数签名并验证参数
+            try:
+                sig = inspect.signature(step_function)
+                accepted_params = set(sig.parameters.keys()) - {'ssh'}  # ssh参数是必须的
+
+                # 只传递函数接受的参数
+                valid_params = {
+                    'ssh': self.ssh_client,
+                    **{k: v for k, v in step_params.items() if k in accepted_params}
+                }
+
+                # 执行步骤
+                logger.info(f"Executing {module_name}.{function_name}")
+                execution_result = step_function(**valid_params)
+
+            except Exception as e:
+                logger.error(f"Parameter validation failed for {function_name}: {str(e)}")
+                raise ValueError(f"参数验证失败: {str(e)}")
 
             # 处理执行结果
             result.update(self._process_execution_result(execution_result))

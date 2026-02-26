@@ -9,23 +9,23 @@
 import re
 from typing import Dict, Any, List, Optional
 from topup_ssh import TopupSSH
-import config
 
 
-def _get_all_available_dates(ssh: TopupSSH) -> Dict[str, Any]:
+def _get_all_available_dates(ssh: TopupSSH, data_dir: str) -> Dict[str, Any]:
     """
     获取所有可用数据目录的日期列表
 
     Args:
         ssh: SSH连接实例
+        data_dir: 数据目录路径
 
     Returns:
         dict: 包含 success, dates (成功时), 或 error (失败时)
     """
     print("\n获取所有可用数据目录...")
-    print(f"数据目录: {config.DATA_DIR}")
+    print(f"数据目录: {data_dir}")
 
-    result = ssh.execute_command(f"ls -1 {config.DATA_DIR}")
+    result = ssh.execute_command(f"ls -1 {data_dir}")
 
     if not result['success']:
         return {
@@ -52,20 +52,21 @@ def _get_all_available_dates(ssh: TopupSSH) -> Dict[str, Any]:
     }
 
 
-def _get_processed_dates(ssh: TopupSSH) -> Dict[str, Any]:
+def _get_processed_dates(ssh: TopupSSH, inj_sig_time_cal_dir: str) -> Dict[str, Any]:
     """
     获取已处理数据目录的日期列表
 
     Args:
         ssh: SSH连接实例
+        inj_sig_time_cal_dir: 处理结果目录路径
 
     Returns:
         dict: 包含 success, dates (成功时), 或 error (失败时)
     """
     print("\n获取已处理数据目录...")
-    print(f"处理结果目录: {config.INJ_SIG_TIME_CAL_DIR}")
+    print(f"处理结果目录: {inj_sig_time_cal_dir}")
 
-    result = ssh.execute_command(f"ls -1 {config.INJ_SIG_TIME_CAL_DIR}")
+    result = ssh.execute_command(f"ls -1 {inj_sig_time_cal_dir}")
 
     if not result['success']:
         return {
@@ -115,6 +116,7 @@ def _calculate_unprocessed_dates(
 
 def step0_get_available_dates(
     ssh: TopupSSH,
+    round: str,
     include_processed: bool = True,
     sort_order: str = 'asc'
 ) -> Dict[str, Any]:
@@ -128,6 +130,7 @@ def step0_get_available_dates(
 
     Args:
         ssh: TopupSSH 实例，用于执行远程命令
+        round: 轮次标识符，用来构建数据目录路径
         include_processed: 是否包含已处理日期信息，默认为True
         sort_order: 排序方式，'asc'（升序）或'desc'（降序），默认为'asc'
 
@@ -149,9 +152,14 @@ def step0_get_available_dates(
     print(f"包含已处理日期信息: {include_processed}")
     print(f"排序方式: {sort_order}")
 
+    # 计算路径
+    data_dir = f"/bes3fs/offline/data/cal/{round}"
+    base_dir = f"/besfs5/groups/cal/topup/{round}/DataValid"
+    inj_sig_time_cal_dir = f"{base_dir}/InjSigTimeCal"
+
     try:
         # 1. 获取所有可用日期
-        all_dates_result = _get_all_available_dates(ssh)
+        all_dates_result = _get_all_available_dates(ssh, data_dir)
 
         if not all_dates_result['success']:
             return {
@@ -169,7 +177,7 @@ def step0_get_available_dates(
 
         # 2. 如果需要，获取已处理日期信息
         if include_processed:
-            processed_dates_result = _get_processed_dates(ssh)
+            processed_dates_result = _get_processed_dates(ssh, inj_sig_time_cal_dir)
 
             if not processed_dates_result['success']:
                 # 获取已处理日期失败，但只返回所有可用日期

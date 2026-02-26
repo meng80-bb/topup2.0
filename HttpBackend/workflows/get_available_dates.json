@@ -3,7 +3,7 @@
     "name": "get_available_dates_workflow",
     "display_name": "获取可用日期列表",
     "description": "获取数据目录中所有可用的日期列表，并可选择包含已处理日期信息",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "Topup Team",
     "created_at": "2026-02-24",
     "updated_at": "2026-02-24"
@@ -45,6 +45,12 @@
         "default": "asc",
         "enum": ["asc", "desc"],
         "description": "排序方式：asc（升序）或desc（降序）"
+      },
+      {
+        "name": "round",
+        "type": "string",
+        "default": "round1",
+        "description": "轮次标识符，用来构建数据目录路径"
       }
     ]
   },
@@ -60,7 +66,8 @@
       "retry_count": 2,
       "parameters": {
         "include_processed": "include_processed",
-        "sort_order": "sort_order"
+        "sort_order": "sort_order",
+        "round": "round"
       },
       "on_failure": {
         "action": "stop",
