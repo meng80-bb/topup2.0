@@ -109,3 +109,10 @@ UPLOAD_CONFIG = {
     'max_file_size': 100 * 1024 * 1024,  # 100MB
     'allowed_extensions': ['.txt', '.log', '.png', '.root', '.json'],
 }
+
+# 下载配置
+DOWNLOAD_CONFIG = {
+    'download_dir': BASE_DIR / 'downloads',
+    'allowed_extensions': ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.log', '.root', '.json'],
+    'max_file_size': 500 * 1024 * 1024,  # 500MB
+}

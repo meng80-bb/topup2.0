@@ -13,7 +13,7 @@ from pathlib import Path
 
 from config import FLASK_CONFIG, LOGGING_CONFIG, DATABASE_URL, NOTIFICATION_CONFIG
 from models.database import db
-from api.routes import tasks_bp, workflows_bp, executions_bp, logs_bp
+from api.routes import tasks_bp, workflows_bp, executions_bp, logs_bp, downloads_bp
 from api.middleware import setup_middleware
 
 # 创建应用实例
@@ -48,6 +48,7 @@ app.register_blueprint(tasks_bp, url_prefix='/api/tasks')
 app.register_blueprint(workflows_bp, url_prefix='/api/workflows')
 app.register_blueprint(executions_bp, url_prefix='/api/executions')
 app.register_blueprint(logs_bp, url_prefix='/api/logs')
+app.register_blueprint(downloads_bp, url_prefix='/api/downloads')
 
 @app.route('/api/health')
 def health_check():
@@ -68,7 +69,8 @@ def index():
             'tasks': '/api/tasks',
             'workflows': '/api/workflows',
             'executions': '/api/executions',
-            'logs': '/api/logs'
+            'logs': '/api/logs',
+            'downloads': '/api/downloads'
         }
     }
 
