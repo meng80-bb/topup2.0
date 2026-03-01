@@ -225,14 +225,15 @@ class TopupSSH:
                 'error': str(e)
             }
     
-    def execute_interactive_command(self, command: str, completion_marker: str) -> Dict[str, Any]:
+    def execute_interactive_command(self, command: str, completion_marker: str, timeout: int = 3600) -> Dict[str, Any]:
         """
         使用交互式shell执行命令
-        
+
         Args:
             command: 要执行的命令
             completion_marker: 完成标记字符串，检测到此字符串时关闭shell（必选）
-            
+            timeout: 超时时间（秒），默认3600秒（1小时）
+
         Returns:
             dict: 执行结果，包含success, message, output, error
         """
@@ -263,16 +264,34 @@ class TopupSSH:
                 logger.debug(f"完成标记: {completion_marker}")
             
             shell.send(f"{command}\n")
-            
-            # 读取输出（无时间限制）
+
+            # 读取输出（带时间限制）
             full_output = ""
-            
+            start_time = time.time()
+
             while True:
+                # 检查是否超时
+                elapsed_time = time.time() - start_time
+                if elapsed_time > timeout:
+                    print(f"\n✗ 输出读取超时（{timeout}秒）")
+                    shell.close()
+
+                    # 记录超时到日志
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(f"输出读取超时（{timeout}秒）")
+
+                    return {
+                        'success': False,
+                        'message': f'输出读取超时（{timeout}秒）',
+                        'output': full_output,
+                        'error': '输出读取超时'
+                    }
+
                 if shell.recv_ready():
                     chunk = shell.recv(4096).decode('utf-8', errors='ignore')
                     full_output += chunk
                     print(chunk, end='', flush=True)
-                    
+
                     # 检查是否在输出中检测到完成标记
                     if completion_marker in chunk:
                         print(f"\n✓ 检测到完成标记: {completion_marker}")

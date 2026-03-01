@@ -56,6 +56,7 @@ def step1_1_first_job_submission(
     base_dir = f"/besfs5/groups/cal/topup/{round}/DataValid"
     inj_sig_time_cal_dir = f"{base_dir}/InjSigTimeCal"
     date_dir = f"{inj_sig_time_cal_dir}/{date}"
+    env_script = "~/w720"
 
     # 检查数据目录是否存在
     print(f"\n检查数据目录是否存在...")
@@ -87,7 +88,7 @@ def step1_1_first_job_submission(
             # 执行genJob.sh脚本
             print(f"\n执行genJob.sh脚本 (日期: {date})...")
             result = ssh.execute_interactive_command(
-                f"cd {inj_sig_time_cal_dir} && source .bashrc && ./genJob.sh {date}",
+                f"cd {inj_sig_time_cal_dir} && source {env_script} && ./genJob.sh {date}",
                 completion_marker="DONE"
             )
 

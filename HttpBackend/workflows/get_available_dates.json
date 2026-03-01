@@ -3,7 +3,7 @@
     "name": "get_available_dates_workflow",
     "display_name": "获取可用日期列表",
     "description": "获取数据目录中所有可用的日期列表，并可选择包含已处理日期信息",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "Topup Team",
     "created_at": "2026-02-24",
     "updated_at": "2026-02-24"

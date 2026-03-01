@@ -3,7 +3,7 @@
     "name": "topup_standard_steps_workflow",
     "display_name": "Topup标准步骤处理",
     "description": "执行完整的Topup数据处理流程：第一次作业提交、移动文件、IST分析和图片合并",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "Topup Team",
     "created_at": "2026-03-01",
     "updated_at": "2026-03-01"
