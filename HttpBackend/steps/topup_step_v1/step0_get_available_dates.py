@@ -176,7 +176,7 @@ def step0_get_available_dates(
             all_dates.sort(reverse=True)
 
         # 2. 如果需要，获取已处理日期信息
-        if include_processed:
+        if include_processed == True:
             processed_dates_result = _get_processed_dates(ssh, inj_sig_time_cal_dir)
 
             if not processed_dates_result['success']:
