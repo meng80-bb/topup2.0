@@ -52,7 +52,11 @@ class DatabaseWorkflowService:
             raise ValueError(f"Workflow not found: {workflow_name}")
 
         # 读取基础配置文件
-        config_path = self.config_dir / f'{workflow_name}.json'
+
+        config_path = Path(workflow.config_path) if workflow.config_path else self.config_dir / f'{workflow_name}.json'
+
+
+        print(f"Looking for workflow config at: {config_path}")
         if not config_path.exists():
             # 如果没有配置文件，创建基础配置
             config = self._create_base_config(workflow)

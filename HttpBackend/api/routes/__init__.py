@@ -9,3 +9,4 @@ from .tasks import tasks_bp
 from .workflows import workflows_bp
 from .executions import executions_bp
 from .logs import logs_bp
+from .downloads import downloads_bp

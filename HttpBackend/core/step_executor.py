@@ -74,7 +74,7 @@ class StepExecutor:
             }
 
             # 准备步骤参数
-            step_params = self._prepare_step_parameters(step_config, parameters)
+            step_params = self._prepare_step_parameters(step_config, parameters, task_id, step_order)
 
             # 动态导入步骤模块
             module_name = step_config['module']
@@ -139,13 +139,21 @@ class StepExecutor:
 
             return result
 
-    def _prepare_step_parameters(self, step_config: Dict[str, Any], task_parameters: Dict[str, Any]) -> Dict[str, Any]:
+    def _prepare_step_parameters(
+        self,
+        step_config: Dict[str, Any],
+        task_parameters: Dict[str, Any],
+        task_id: int,
+        step_order: int
+    ) -> Dict[str, Any]:
         """
         准备步骤参数
 
         Args:
             step_config: 步骤配置
             task_parameters: 任务参数
+            task_id: 任务ID
+            step_order: 步骤顺序（代表这是task中的第几个step）
 
         Returns:
             步骤参数字典
@@ -166,7 +174,8 @@ class StepExecutor:
         # 添加一些常用参数
         step_params.update({
             'submit_job': task_parameters.get('submit_job', True),
-            'max_wait_minutes': task_parameters.get('max_wait_minutes', 25)
+            'max_wait_minutes': task_parameters.get('max_wait_minutes', 25),
+            'local_file_dir': f'downloads/{task_id}_{step_order}'
         })
 
         return step_params

@@ -1,0 +1,176 @@
+{
+  "workflow": {
+    "name": "topup_standard_steps_workflow",
+    "display_name": "Topup标准步骤处理",
+    "description": "执行完整的Topup数据处理流程：第一次作业提交、移动文件、IST分析和图片合并",
+    "version": "1.0.0",
+    "author": "Topup Team",
+    "created_at": "2026-03-01",
+    "updated_at": "2026-03-01"
+  },
+  "execution": {
+    "max_parallel_tasks": 1,
+    "default_timeout_minutes": 60,
+    "retry_on_failure": true,
+    "max_retries": 2,
+    "retry_delay_seconds": 30,
+    "continue_on_error": false,
+    "cleanup_on_success": false,
+    "cleanup_on_failure": false
+  },
+  "environment": {
+    "python_version": "3.8+",
+    "required_modules": [
+      "paramiko",
+      "python-dotenv",
+      "flask",
+      "flask-cors",
+      "flask-sqlalchemy"
+    ]
+  },
+  "parameters": {
+    "required": [
+      "user_id",
+      "date",
+      "round"
+    ],
+    "optional": [
+      {
+        "name": "submit_job",
+        "type": "boolean",
+        "default": true,
+        "description": "是否提交作业，默认为True"
+      },
+      {
+        "name": "max_wait_minutes",
+        "type": "integer",
+        "default": 25,
+        "description": "最大等待时间（分钟），默认25分钟"
+      },
+      {
+        "name": "check_ist",
+        "type": "boolean",
+        "default": true,
+        "description": "是否检查IST值是否等于15000000，默认为True"
+      },
+      {
+        "name": "download_files",
+        "type": "boolean",
+        "default": true,
+        "description": "是否下载PDF文件到本地，默认为True"
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "step1_1",
+      "order": 1,
+      "display_name": "第一次作业提交并检查结果文件",
+      "module": "topup_step_v1.step1_1_first_job_submission",
+      "function": "step1_1_first_job_submission",
+      "description": "提交作业并监控结果文件生成，检查6个必需文件",
+      "timeout_minutes": 30,
+      "retry_count": 2,
+      "parameters": {
+        "date": "date",
+        "round": "round",
+        "submit_job": "submit_job",
+        "max_wait_minutes": "max_wait_minutes"
+      },
+      "on_failure": {
+        "action": "stop",
+        "notify": true
+      }
+    },
+    {
+      "id": "step1_2",
+      "order": 2,
+      "display_name": "移动文件",
+      "module": "topup_step_v1.step1_2_move_files",
+      "function": "step1_2_move_files",
+      "description": "将root文件移动到calibConst目录，将png文件移动到Interval_plot目录",
+      "timeout_minutes": 5,
+      "retry_count": 2,
+      "parameters": {
+        "date": "date",
+        "round": "round"
+      },
+      "on_failure": {
+        "action": "stop",
+        "notify": true
+      },
+      "depends_on": ["step1_1"]
+    },
+    {
+      "id": "step1_3",
+      "order": 3,
+      "display_name": "IST分析",
+      "module": "topup_step_v1.step1_3_ist_analysis",
+      "function": "step1_3_ist_analysis",
+      "description": "检查每个run号的Interval文件中的interval值，验证是否都等于15000000",
+      "timeout_minutes": 10,
+      "retry_count": 2,
+      "parameters": {
+        "date": "date",
+        "round": "round",
+        "check": "check_ist"
+      },
+      "on_failure": {
+        "action": "stop",
+        "notify": true
+      },
+      "depends_on": ["step1_2"]
+    },
+    {
+      "id": "step1_4",
+      "order": 4,
+      "display_name": "合并图片",
+      "module": "topup_step_v1.step1_4_merge_images",
+      "function": "step1_4_merge_images",
+      "description": "进入Interval_plot目录，使用容器中的convert命令将所有PNG图片合并为PDF",
+      "timeout_minutes": 15,
+      "retry_count": 2,
+      "parameters": {
+        "date": "date",
+        "round": "round",
+        "download_files": "download_files"
+      },
+      "on_failure": {
+        "action": "stop",
+        "notify": true
+      },
+      "depends_on": ["step1_3"]
+    }
+  ],
+  "notifications": {
+    "on_start": {
+      "enabled": true,
+      "message": "任务 {task_name} 开始执行，日期: {date}"
+    },
+    "on_complete": {
+      "enabled": true,
+      "message": "任务 {task_name} 执行完成，耗时 {duration}秒"
+    },
+    "on_failure": {
+      "enabled": true,
+      "message": "任务 {task_name} 执行失败，错误：{error}"
+    },
+    "on_step_complete": {
+      "enabled": true,
+      "message": "步骤 {step_name} 完成 - {message}"
+    }
+  },
+  "output": {
+    "base_dir": "/besfs5/groups/cal/topup/{round}/DataValid",
+    "result_format": {
+      "workflow_complete": "boolean - 整个工作流是否成功完成",
+      "date": "string - 处理的日期",
+      "round": "string - 轮次标识符",
+      "step_results": "object - 每个步骤的执行结果",
+      "pdf_local_path": "string (optional) - PDF文件本地路径，当download_files=true时",
+      "pdf_remote_path": "string (optional) - PDF文件远程路径",
+      "total_elapsed_time": "integer - 总耗时（秒）",
+      "ist_results": "object - IST分析结果（step1_3）"
+    }
+  }
+}
