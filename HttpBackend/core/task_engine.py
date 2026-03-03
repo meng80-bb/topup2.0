@@ -297,6 +297,8 @@ class TaskEngine:
                     execution.duration_seconds = result.get('duration_seconds', 0)
                     execution.output_summary = result.get('output_summary', '')
                     execution.error_details = result.get('error_details', '')
+                    execution.step_result_json = result.get('step_result_json', {})
+                    execution.console_output = result.get('console_output', '')
                     db.session.commit()
 
                     # 记录日志

@@ -145,6 +145,8 @@ class TaskExecution(db.Model):
     retry_count = Column(Integer, default=0)
     output_summary = Column(Text)
     error_details = Column(Text)
+    step_result_json = Column(JSON)  # 完整的step返回值（JSON格式）
+    console_output = Column(Text)  # step执行过程中的print输出
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # 关联关系
@@ -165,6 +167,8 @@ class TaskExecution(db.Model):
             'retry_count': self.retry_count,
             'output_summary': self.output_summary,
             'error_details': self.error_details,
+            'step_result_json': self.step_result_json,
+            'console_output': self.console_output,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 

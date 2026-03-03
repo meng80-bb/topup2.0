@@ -11,6 +11,7 @@ import time
 from typing import Optional, Tuple, Dict, Any
 import config
 import logging
+import socket
 
 # 创建logger
 logger = logging.getLogger(__name__)
@@ -54,10 +55,16 @@ class TopupSSH:
             
             # 连接到跳板机
             print(f"正在连接到跳板机 {self.server1_config['host']}...")
+
+            # 使用socket连接，避免IPv6连接问题
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((self.server1_config['host'], self.server1_config['port']))
+
             self.ssh1.connect(
                 hostname=self.server1_config['host'],
                 port=self.server1_config['port'],
                 username=self.server1_config['username'],
+                sock=sock,
                 password=password1,
                 timeout=30,
                 auth_timeout=30,

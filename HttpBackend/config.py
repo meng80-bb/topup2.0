@@ -85,7 +85,8 @@ SSH_CONFIG = {
             "host": "lxlogin.ihep.ac.cn",
             "port": 22,
             "username": "topup",
-            "env_password": "SSH_PASS_LXLOGIN"
+            "env_password": "SSH_PASS_LXLOGIN",
+            "AddressFamily": "inet"  # 强制使用IPv4，避免IPv6连接问题
         },
         "server2": {
             "name": "beslogin",

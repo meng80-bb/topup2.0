@@ -10,6 +10,8 @@ import time
 import traceback
 import hashlib
 import logging
+import sys
+import io
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from datetime import datetime
@@ -102,6 +104,19 @@ class StepExecutor:
                 logger.error(f"Parameter validation failed for {function_name}: {str(e)}")
                 raise ValueError(f"参数验证失败: {str(e)}")
 
+            # 提取console_logs并保存到console_output
+            console_logs = execution_result.get('console_logs', [])
+            if isinstance(console_logs, list):
+                result['console_output'] = '\n'.join(console_logs)
+            else:
+                result['console_output'] = str(console_logs) if console_logs else ''
+
+            # 保存完整的返回值JSON（排除已经单独存储的字段）
+            result['step_result_json'] = {
+                k: v for k, v in execution_result.items()
+                if k not in ['success', 'message', 'error', 'console_logs']
+            }
+
             # 处理执行结果
             result.update(self._process_execution_result(execution_result))
 
@@ -175,7 +190,8 @@ class StepExecutor:
         step_params.update({
             'submit_job': task_parameters.get('submit_job', True),
             'max_wait_minutes': task_parameters.get('max_wait_minutes', 25),
-            'local_file_dir': f'downloads/{task_id}_{step_order}'
+            'local_file_dir': f'downloads/{task_id}_{step_order}',
+            "step_order": step_order
         })
 
         return step_params

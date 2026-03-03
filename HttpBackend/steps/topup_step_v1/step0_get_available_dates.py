@@ -11,19 +11,20 @@ from typing import Dict, Any, List, Optional
 from topup_ssh import TopupSSH
 
 
-def _get_all_available_dates(ssh: TopupSSH, data_dir: str) -> Dict[str, Any]:
+def _get_all_available_dates(ssh: TopupSSH, data_dir: str, console_logs: list) -> Dict[str, Any]:
     """
     获取所有可用数据目录的日期列表
 
     Args:
         ssh: SSH连接实例
         data_dir: 数据目录路径
+        console_logs: 日志列表
 
     Returns:
         dict: 包含 success, dates (成功时), 或 error (失败时)
     """
-    print("\n获取所有可用数据目录...")
-    print(f"数据目录: {data_dir}")
+    console_logs.append("\n获取所有可用数据目录...")
+    console_logs.append(f"数据目录: {data_dir}")
 
     result = ssh.execute_command(f"ls -1 {data_dir}")
 
@@ -43,8 +44,8 @@ def _get_all_available_dates(ssh: TopupSSH, data_dir: str) -> Dict[str, Any]:
     # 按日期排序
     all_dates.sort()
 
-    print(f"找到 {len(all_dates)} 个可用日期目录")
-    print(f"日期列表: {all_dates}")
+    console_logs.append(f"找到 {len(all_dates)} 个可用日期目录")
+    console_logs.append(f"日期列表: {all_dates}")
 
     return {
         'success': True,
@@ -52,19 +53,20 @@ def _get_all_available_dates(ssh: TopupSSH, data_dir: str) -> Dict[str, Any]:
     }
 
 
-def _get_processed_dates(ssh: TopupSSH, inj_sig_time_cal_dir: str) -> Dict[str, Any]:
+def _get_processed_dates(ssh: TopupSSH, inj_sig_time_cal_dir: str, console_logs: list) -> Dict[str, Any]:
     """
     获取已处理数据目录的日期列表
 
     Args:
         ssh: SSH连接实例
         inj_sig_time_cal_dir: 处理结果目录路径
+        console_logs: 日志列表
 
     Returns:
         dict: 包含 success, dates (成功时), 或 error (失败时)
     """
-    print("\n获取已处理数据目录...")
-    print(f"处理结果目录: {inj_sig_time_cal_dir}")
+    console_logs.append("\n获取已处理数据目录...")
+    console_logs.append(f"处理结果目录: {inj_sig_time_cal_dir}")
 
     result = ssh.execute_command(f"ls -1 {inj_sig_time_cal_dir}")
 
@@ -84,8 +86,8 @@ def _get_processed_dates(ssh: TopupSSH, inj_sig_time_cal_dir: str) -> Dict[str, 
     # 按日期排序
     processed_dates.sort()
 
-    print(f"找到 {len(processed_dates)} 个已处理日期目录")
-    print(f"已处理日期: {processed_dates}")
+    console_logs.append(f"找到 {len(processed_dates)} 个已处理日期目录")
+    console_logs.append(f"已处理日期: {processed_dates}")
 
     return {
         'success': True,
@@ -138,6 +140,7 @@ def step0_get_available_dates(
         包含以下键的字典：
             - success (bool, 必需): 是否成功
             - message (str, 必需): 人类可读的消息
+            - console_logs (list, 必需): 执行过程日志
             - all_dates (list, 可选): 所有可用日期列表
             - processed_dates (list, 可选): 已处理日期列表（当include_processed=True时）
             - unprocessed_dates (list, 可选): 未处理日期列表（当include_processed=True时）
@@ -146,11 +149,12 @@ def step0_get_available_dates(
             - unprocessed_count (int, 可选): 未处理日期数量
             - error (str, 可选): 失败时的错误详情
     """
-    print("\n" + "="*60)
-    print("步骤0：获取所有可用数据目录的日期列表")
-    print("="*60)
-    print(f"包含已处理日期信息: {include_processed}")
-    print(f"排序方式: {sort_order}")
+    console_logs = []
+    console_logs.append("="*60)
+    console_logs.append("步骤0：获取所有可用数据目录的日期列表")
+    console_logs.append("="*60)
+    console_logs.append(f"包含已处理日期信息: {include_processed}")
+    console_logs.append(f"排序方式: {sort_order}")
 
     # 计算路径
     data_dir = f"/bes3fs/offline/data/cal/{round}"
@@ -159,13 +163,14 @@ def step0_get_available_dates(
 
     try:
         # 1. 获取所有可用日期
-        all_dates_result = _get_all_available_dates(ssh, data_dir)
+        all_dates_result = _get_all_available_dates(ssh, data_dir, console_logs)
 
         if not all_dates_result['success']:
             return {
                 'success': False,
                 'message': all_dates_result['message'],
                 'error': all_dates_result.get('error', ''),
+                'console_logs': console_logs,
                 'step_name': 'step0'
             }
 
@@ -177,11 +182,11 @@ def step0_get_available_dates(
 
         # 2. 如果需要，获取已处理日期信息
         if include_processed == True:
-            processed_dates_result = _get_processed_dates(ssh, inj_sig_time_cal_dir)
+            processed_dates_result = _get_processed_dates(ssh, inj_sig_time_cal_dir, console_logs)
 
             if not processed_dates_result['success']:
                 # 获取已处理日期失败，但只返回所有可用日期
-                print("⚠ 获取已处理日期失败，仅返回所有可用日期")
+                console_logs.append("⚠ 获取已处理日期失败，仅返回所有可用日期")
 
                 return {
                     'success': True,
@@ -190,6 +195,7 @@ def step0_get_available_dates(
                     'all_dates': all_dates,
                     'total_count': len(all_dates),
                     'sort_order': sort_order,
+                    'console_logs': console_logs,
                     'warning': '无法获取已处理日期信息'
                 }
 
@@ -206,10 +212,10 @@ def step0_get_available_dates(
             if sort_order == 'desc':
                 unprocessed_dates.sort(reverse=True)
 
-            print(f"\n统计信息:")
-            print(f"  总日期数: {len(all_dates)}")
-            print(f"  已处理: {len(processed_dates)}")
-            print(f"  未处理: {len(unprocessed_dates)}")
+            console_logs.append(f"\n统计信息:")
+            console_logs.append(f"  总日期数: {len(all_dates)}")
+            console_logs.append(f"  已处理: {len(processed_dates)}")
+            console_logs.append(f"  未处理: {len(unprocessed_dates)}")
 
             return {
                 'success': True,
@@ -221,27 +227,31 @@ def step0_get_available_dates(
                 'total_count': len(all_dates),
                 'processed_count': len(processed_dates),
                 'unprocessed_count': len(unprocessed_dates),
-                'sort_order': sort_order
+                'sort_order': sort_order,
+                'console_logs': console_logs
             }
 
         else:
             # 只返回所有可用日期
-            print(f"\n统计信息:")
-            print(f"  总日期数: {len(all_dates)}")
+            console_logs.append(f"\n统计信息:")
+            console_logs.append(f"  总日期数: {len(all_dates)}")
 
             return {
                 'success': True,
-                'message': f'成功获取 {len(all_dates)} 个可用日期，如下: {all_dates}',
+                'message': f'成功获取 {len(all_dates)} 个可用日期',
                 'step_name': 'step0',
                 'all_dates': all_dates,
                 'total_count': len(all_dates),
-                'sort_order': sort_order
+                'sort_order': sort_order,
+                'console_logs': console_logs
             }
 
     except Exception as e:
+        console_logs.append(f"异常: {str(e)}")
         return {
             'success': False,
             'message': f'获取日期列表异常: {str(e)}',
             'error': str(e),
-            'step_name': 'step0'
+            'step_name': 'step0',
+            'console_logs': console_logs
         }

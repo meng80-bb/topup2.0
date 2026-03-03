@@ -3,6 +3,7 @@
 .claude
 
 
+
 HttpBackend/topup_api.db
 HttpBackend/logs
 
@@ -10,3 +11,4 @@ HttpBackend/logs
 __pycache__
 HttpBackend/aibot_demo_python3/frpc.toml
 HttpBackend/aibot_demo_python3/frpc
+HttpBackend/instance
