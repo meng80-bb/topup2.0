@@ -93,6 +93,8 @@ class Task(db.Model):
     status = Column(String(20), default='pending', index=True)  # pending, running, success, failed, paused, cancelled
     progress_percentage = Column(Integer, default=0)
     current_step = Column(String(50))
+    pause_at_step = Column(String(50))  # 记录暂停时的步骤，用于恢复时重新执行
+    resume_from_step = Column(String(50))  # 指定从哪个步骤开始恢复执行
     error_message = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     started_at = Column(DateTime)
@@ -115,6 +117,8 @@ class Task(db.Model):
             'status': self.status,
             'progress_percentage': self.progress_percentage,
             'current_step': self.current_step,
+            'pause_at_step': self.pause_at_step,
+            'resume_from_step': self.resume_from_step,
             'error_message': self.error_message,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'started_at': self.started_at.isoformat() if self.started_at else None,

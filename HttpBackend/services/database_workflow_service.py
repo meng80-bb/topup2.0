@@ -60,10 +60,13 @@ class DatabaseWorkflowService:
         if not config_path.exists():
             # 如果没有配置文件，创建基础配置
             config = self._create_base_config(workflow)
+            json_steps_by_id = {}
         else:
             # 读取并增强配置文件
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
+            # 建立 JSON 步骤 ID 到步骤配置的映射，用于合并数据库中没有的字段
+            json_steps_by_id = {s['id']: s for s in config.get('steps', [])}
 
         # 从数据库加载步骤
         steps = WorkflowStep.query.filter_by(workflow_id=workflow.id, status='active').order_by(WorkflowStep.step_order).all()
@@ -82,8 +85,15 @@ class DatabaseWorkflowService:
                 'retry_count': step.retry_count,
                 'parameters': step.required_files or {}
             }
+            # 合并 JSON 文件中数据库模型未存储的字段（如 on_failure, pause_after）
+            json_step = json_steps_by_id.get(step.step_name, {})
+            print(json_step)
+            for key in ('on_failure', 'on_success', 'pause_after'):
+                if key in json_step:
+                    step_config[key] = json_step[key]
+                    print(step_config)
             config['steps'].append(step_config)
-
+            print(config)
         return config
 
     def _load_from_file(self, workflow_name: str) -> Dict[str, Any]:

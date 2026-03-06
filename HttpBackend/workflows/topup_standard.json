@@ -141,6 +141,7 @@
       "required_files": [
         "merged_interval.png"
       ],
+      "pause_after": true,
       "depends_on": ["step1_3"]
     },
     {

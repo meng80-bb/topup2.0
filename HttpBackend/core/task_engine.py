@@ -92,7 +92,7 @@ class TaskEngine:
 
     def pause_task(self, task_id: int) -> Dict[str, Any]:
         """
-        暂停任务
+        暂停任务（关闭SSH连接）
 
         Args:
             task_id: 任务ID
@@ -108,10 +108,12 @@ class TaskEngine:
             return {'success': False, 'error': f'Cannot pause task in {task.status} state'}
 
         try:
-            # 实现暂停逻辑
             state_manager.set_task_status(task_id, TaskStatus.PAUSED)
             task.status = 'paused'
             db.session.commit()
+
+            # 关闭SSH连接，避免长时间暂停后连接超时
+            self._close_ssh(task_id)
 
             emit_status_update(task_id, 'paused', 'Task paused')
             return {'success': True, 'message': 'Task paused'}
@@ -120,12 +122,15 @@ class TaskEngine:
             logger.error(f"Failed to pause task {task_id}: {str(e)}")
             return {'success': False, 'error': str(e)}
 
-    def resume_task(self, task_id: int) -> Dict[str, Any]:
+    def resume_task(self, task_id: int, parameters: Optional[Dict[str, Any]] = None,
+                    retry_from_step: Optional[str] = None) -> Dict[str, Any]:
         """
-        恢复任务
+        恢复任务（重新建立SSH连接，从指定步骤开始执行）
 
         Args:
             task_id: 任务ID
+            parameters: 可选，更新任务参数
+            retry_from_step: 可选，指定从哪个步骤重新开始（默认从 pause_at_step 重新执行）
 
         Returns:
             执行结果
@@ -138,13 +143,43 @@ class TaskEngine:
             return {'success': False, 'error': f'Cannot resume task in {task.status} state'}
 
         try:
-            # 实现恢复逻辑
+            # 更新任务参数
+            if parameters:
+                from models.task import TaskParameter
+                for param_name, param_value in parameters.items():
+                    existing = TaskParameter.query.filter_by(
+                        task_id=task_id, param_name=param_name
+                    ).first()
+                    if existing:
+                        existing.param_value = str(param_value)
+                    else:
+                        new_param = TaskParameter(
+                            task_id=task_id,
+                            param_name=param_name,
+                            param_value=str(param_value)
+                        )
+                        db.session.add(new_param)
+
+            # 设置从哪个步骤重新执行
+            resume_step = retry_from_step or task.pause_at_step
+            task.resume_from_step = resume_step
+
+            # 重新建立SSH连接
+            ssh_client = TopupSSH()
+            if not ssh_client.connect():
+                return {'success': False, 'error': 'Failed to reconnect SSH, please retry later'}
+            self.ssh_clients[task_id] = ssh_client
+
+            # 启动新的执行线程
             state_manager.set_task_status(task_id, TaskStatus.RUNNING)
             task.status = 'running'
             db.session.commit()
 
-            emit_status_update(task_id, 'running', 'Task resumed')
-            return {'success': True, 'message': 'Task resumed'}
+            future = self.executor.submit(self._execute_task, task_id)
+            self.active_tasks[task_id] = future
+
+            emit_status_update(task_id, 'running', f'Task resumed from step: {resume_step}')
+            return {'success': True, 'message': f'Task resumed from step: {resume_step}'}
 
         except Exception as e:
             logger.error(f"Failed to resume task {task_id}: {str(e)}")
@@ -175,9 +210,7 @@ class TaskEngine:
                 del self.active_tasks[task_id]
 
             # 关闭SSH连接
-            if task_id in self.ssh_clients:
-                self.ssh_clients[task_id].close()
-                del self.ssh_clients[task_id]
+            self._close_ssh(task_id)
 
             # 更新任务状态
             state_manager.set_task_status(task_id, TaskStatus.CANCELLED)
@@ -259,6 +292,14 @@ class TaskEngine:
                 total_steps = len(steps)
                 completed_steps = 0
 
+                # 确定从哪个步骤开始执行（支持 resume_from_step）
+                resume_from = task.resume_from_step
+                skip_until = resume_from  # 跳过此步骤之前的所有步骤
+                if resume_from:
+                    task.resume_from_step = None  # 清除，避免下次重复跳过
+                    db.session.commit()
+                    logger.info(f"Task {task_id} resuming from step: {resume_from}")
+
                 for i, step_config in enumerate(steps, 1):
                     current_status = state_manager.get_task_status(task_id)
                     logger.info(f"[Thread-{threading.current_thread().name}] Checking task status for task {task_id}: {current_status}")
@@ -267,6 +308,12 @@ class TaskEngine:
                         break
 
                     step_name = step_config['id']
+
+                    # 跳过 resume_from_step 之前的步骤（已成功执行过的）
+                    if skip_until and step_name != skip_until:
+                        logger.info(f"Task {task_id} skipping step {step_name} (resuming from {skip_until})")
+                        continue
+                    skip_until = None  # 到达目标步骤后停止跳过
                     step_order = step_config['order']
 
                     # 创建执行记录
@@ -320,9 +367,24 @@ class TaskEngine:
 
                     # 如果步骤失败，检查是否需要停止
                     if not result['success']:
+                        print(step_config)
+                        print(step_config.get('on_failure', {}))
                         if step_config.get('on_failure', {}).get('action') == 'stop':
                             logger.error(f"Step {step_name} failed, stopping execution")
                             break
+
+                    # 检查步骤完成后是否需要自动暂停（pause_after）
+                    if result['success'] and step_config.get('pause_after'):
+                        logger.info(f"Task {task_id} auto-pausing after step {step_name} (pause_after=true)")
+                        task.pause_at_step = step_name
+                        state_manager.set_task_status(task_id, TaskStatus.PAUSED)
+                        task.status = 'paused'
+                        db.session.commit()
+                        # 关闭SSH连接，等待恢复时重新连接
+                        self._close_ssh(task_id)
+                        emit_status_update(task_id, 'paused',
+                                           f'Task paused after step {step_name}, waiting for parameter update')
+                        return  # 退出执行线程，等待 resume_task 重新启动
 
                 # 完成任务
                 self._complete_task(task_id)
@@ -399,6 +461,15 @@ class TaskEngine:
             emit_status_update(task_id, 'failed', f'Task failed: {error_message}')
             logger.error(f"Task {task_id} failed: {error_message}")
 
+    def _close_ssh(self, task_id: int):
+        """关闭并移除SSH连接"""
+        if task_id in self.ssh_clients:
+            try:
+                self.ssh_clients[task_id].close()
+            except Exception as e:
+                logger.warning(f"Error closing SSH for task {task_id}: {e}")
+            del self.ssh_clients[task_id]
+
     def _cleanup_task_resources(self, task_id: int):
         """
         清理任务资源
@@ -411,9 +482,7 @@ class TaskEngine:
             del self.active_tasks[task_id]
 
         # 关闭SSH连接
-        if task_id in self.ssh_clients:
-            self.ssh_clients[task_id].close()
-            del self.ssh_clients[task_id]
+        self._close_ssh(task_id)
 
         # 移除锁
         if task_id in self.running_locks:

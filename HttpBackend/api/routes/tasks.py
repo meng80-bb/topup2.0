@@ -137,11 +137,22 @@ def pause_task(task_id):
 @tasks_bp.route('/<int:task_id>/resume', methods=['POST'])
 def resume_task(task_id):
     """
-    恢复任务
+    恢复任务（可选：更新参数、指定从哪步重新执行）
     POST /api/tasks/{task_id}/resume
+    Body (optional):
+      {
+        "parameters": {"param_name": "new_value", ...},
+        "retry_from_step": "step_name"   // 不传则从 pause_at_step 重新执行
+      }
     """
     try:
-        result = task_engine.resume_task(task_id)
+        data = request.get_json(silent=True) or {}
+        print(data.get('parameters'))
+        result = task_engine.resume_task(
+            task_id,
+            parameters=data.get('parameters'),
+            retry_from_step=data.get('retry_from_step')
+        )
         if result['success']:
             return jsonify(result)
         else:
