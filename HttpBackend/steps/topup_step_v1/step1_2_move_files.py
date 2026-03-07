@@ -11,101 +11,101 @@ from topup_ssh import TopupSSH
 
 def step1_2_move_files(
     ssh: TopupSSH,
+    round: str,
     date: str,
-    round: str
 ) -> Dict[str, Any]:
     """
     移动文件
 
-    将root文件移动到calibConst目录
-    将png文件移动到Interval_plot目录
+    将 InjSigTime*.root 移动到 calibConst 目录
+    将 Interval*.png 移动到 Interval_plot 目录
 
     Args:
-        ssh: TopupSSH 实例，用于执行远程命令
-        date: 日期参数（如250624），必需参数
-        round: 轮次标识符，用于构建目录路径
+        ssh: TopupSSH 实例（必需，自动注入）
+        round: 轮次标识符（如 round18），用于构建路径
+        date: 任务的日期参数（必需，自动注入）
 
     Returns:
         包含以下键的字典：
-            - success (bool, 必需): 是否成功
-            - message (str, 必需): 人类可读的消息
-            - step_name (str, 推荐): 步骤名称
-            - date (str, 推荐): 使用的日期
-            - remaining_files (str, 可选): 剩余文件列表
-            - error (str, 可选): 失败时的错误详情
+            - success (bool): 是否成功
+            - message (str): 人类可读的消息
+            - console_logs (list): 执行过程日志
+            - date (str): 使用的日期
+            - remaining_files (str): 移动后日期目录剩余文件列表
     """
-    print("\n" + "="*60)
-    print("步骤1.2：移动文件")
-    print("="*60)
-    print(f"日期: {date}")
-    print(f"轮次: {round}")
+    console_logs = []
+    console_logs.append("=" * 60)
+    console_logs.append("步骤1.2：移动文件")
+    console_logs.append("=" * 60)
+    console_logs.append(f"日期参数: {date}")
 
-    # 计算路径
+    # 从 round 参数构建路径（参考 config.py）
     base_dir = f"/besfs5/groups/cal/topup/{round}/DataValid"
     inj_sig_time_cal_dir = f"{base_dir}/InjSigTimeCal"
+    calib_const_dir = f"{inj_sig_time_cal_dir}/calibConst"
+    interval_plot_dir = f"{inj_sig_time_cal_dir}/Interval_plot"
     date_dir = f"{inj_sig_time_cal_dir}/{date}"
-    calib_const_dir = f"{base_dir}/calibConst"
-    interval_plot_dir = f"{base_dir}/Interval_plot"
+
+    console_logs.append(f"\n日期目录: {date_dir}")
 
     try:
-        print(f"\n进入日期目录: {date_dir}")
-
         # 移动root文件
-        print("\n移动root文件到calibConst目录...")
-        result1 = ssh.execute_command(
-            f"cd {date_dir} && mv InjSigTime*.root {calib_const_dir}"
-        )
+        console_logs.append(f"\n移动root文件到calibConst目录...")
+        result1 = ssh.execute_command(f"cd {date_dir} && mv InjSigTime*.root {calib_const_dir}")
 
         if not result1['success']:
+            console_logs.append(f"✗ 移动root文件失败")
             return {
                 'success': False,
                 'message': '移动root文件失败',
-                'step_name': 'step1_2',
+                'error': result1.get('error', ''),
+                'console_logs': console_logs,
+                'step_name': 'step1_2_move_files',
                 'date': date,
-                'output': result1['output'],
-                'error': result1.get('error', '')
             }
 
-        print("✓ root文件移动成功")
+        console_logs.append(f"[OK] root文件移动成功")
 
         # 移动png文件
-        print("\n移动png文件到Interval_plot目录...")
-        result2 = ssh.execute_command(
-            f"cd {date_dir} && mv Interval*.png {interval_plot_dir}"
-        )
+        console_logs.append(f"\n移动png文件到Interval_plot目录...")
+        result2 = ssh.execute_command(f"cd {date_dir} && mv Interval*.png {interval_plot_dir}")
 
         if not result2['success']:
+            console_logs.append(f"✗ 移动png文件失败")
             return {
                 'success': False,
                 'message': '移动png文件失败',
-                'step_name': 'step1_2',
+                'error': result2.get('error', ''),
+                'console_logs': console_logs,
+                'step_name': 'step1_2_move_files',
                 'date': date,
-                'output': result2['output'],
-                'error': result2.get('error', '')
             }
 
-        print("✓ png文件移动成功")
+        console_logs.append(f"[OK] png文件移动成功")
 
         # 验证文件移动
-        print("\n验证文件移动...")
+        console_logs.append(f"\n验证文件移动...")
         result3 = ssh.execute_command(f"cd {date_dir} && ls -la")
-        print(f"日期目录剩余文件:\n{result3['output']}")
-
-        print("\n✓ 文件移动完成")
+        remaining_files = result3['output'] if result3['success'] else ''
+        console_logs.append(f"日期目录剩余文件:\n{remaining_files}")
+        console_logs.append(f"\n[OK] 文件移动完成")
 
         return {
             'success': True,
-            'message': '文件移动成功',
-            'step_name': 'step1_2',
+            'message': f'文件移动成功: {date}',
+            'console_logs': console_logs,
+            'step_name': 'step1_2_move_files',
             'date': date,
-            'remaining_files': result3['output']
+            'remaining_files': remaining_files,
         }
 
     except Exception as e:
+        console_logs.append(f"✗ 移动文件异常: {str(e)}")
         return {
             'success': False,
             'message': f'移动文件异常: {str(e)}',
-            'step_name': 'step1_2',
+            'error': str(e),
+            'console_logs': console_logs,
+            'step_name': 'step1_2_move_files',
             'date': date,
-            'error': str(e)
         }
